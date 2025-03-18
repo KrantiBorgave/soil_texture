@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Soil Type Classifier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .upload-section {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none; /* Hidden by default */
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        #loading {
+            display: none;
+            margin: 10px 0;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-section">
+        <h1>Soil Type Classifier</h1>
+        <input type="file" id="imageUpload" accept="image/*">
+        <button onclick="uploadImage()">Predict Soil Type</button>
+        <div id="loading">Analyzing soil image...</div>
+        <div id="result"></div>
+        <!-- <button style="background-color: blue; color: white; padding: 10px 20px; border-radius: 5px;">
+            pH
+        </button>
+        <button style="background-color: blue; color: white; padding: 10px 20px; border-radius: 5px;">
+            crop
+        </button>
+        <button style="background-color: blue; color: white; padding: 10px 20px; border-radius: 5px;">
+            discription
+        </button> -->
+    </div>
+
+
+    <script>
+        async function uploadImage() {
+            const fileInput = document.getElementById("imageUpload");
+            const resultDiv = document.getElementById("result");
+            const loadingDiv = document.getElementById("loading");
+
+            // Reset previous results
+            resultDiv.style.display = "none";
+            resultDiv.className = "";
+            
+            // Validate file
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showError("Please select an image first!");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            
+            // Validate image type
+            if (!file.type.startsWith('image/')) {
+                showError("Please upload an image file (JPEG/PNG)");
+                return;
+            }
+
+            // Show loading state
+            loadingDiv.style.display = "block";
+
+            try {
+                const formData = new FormData();
+                formData.append("image", file);
+
+                // Send to backend
+                const response = await fetch("http://localhost:5000/predict", {
+                    method: "POST",
+                    body: formData
+                });
+
+                // Handle response
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    showResult(data.soil_type);
+                    // Optional: Show preview of uploaded image
+                    showImagePreview(file);
+                }
+            } catch (error) {
+                showError("Failed to connect to the server");
+            } finally {
+                loadingDiv.style.display = "none";
+            }
+        }
+
+        function showResult(soilType) {
+            const resultDiv = document.getElementById("result");
+            resultDiv.innerHTML = `
+                <h3>Prediction Result</h3>
+                <p><strong>Soil Type:</strong> ${soilType}</p>
+                <!-- Add more details if needed -->
+            `;
+            resultDiv.className = "success";
+            resultDiv.style.display = "block";
+        }
+
+        function showError(message) {
+            const resultDiv = document.getElementById("result");
+            resultDiv.innerHTML = `<p>${message}</p>`;
+            resultDiv.className = "error";
+            resultDiv.style.display = "block";
+        }
+
+        // Optional: Show image preview
+        function showImagePreview(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement("img");
+                img.src = e.target.result;
+                img.style.maxWidth = "200px";
+                img.style.marginTop = "10px";
+                
+                const resultDiv = document.getElementById("result");
+                resultDiv.prepend(img); // Add image to top of result
+            }
+            reader.readAsDataURL(file);
+        }
+
+
+    </script>
+</body>
+</html>
